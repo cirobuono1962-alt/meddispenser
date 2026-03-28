@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MedDispenser</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --card: #1e2a45;
+    --accent: #4f8ef7;
+    --accent2: #7c3aed;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: rgba(255,255,255,0.08);
+    --radius: 14px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  
+  /* NAV */
+  nav { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top:0; z-index:100; }
+  .logo { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .status-dot { width:10px; height:10px; border-radius:50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* TABS */
+  .tabs { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { flex: 1; min-width: 80px; padding: 14px 8px; text-align: center; font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+
+  /* PAGES */
+  .page { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* BUTTONS */
+  .btn { padding: 10px 20px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3b7de8; transform: translateY(-1px); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn:active { transform: scale(0.97); }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* FORMS */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input, select, textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; outline: none; transition: border .15s; font-family: var(--font); }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--bg3); }
+
+  /* BADGE */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-blue { background: rgba(79,142,247,.2); color: var(--accent); }
+  .badge-green { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge-red { background: rgba(239,68,68,.15); color: var(--red); }
+  .badge-amber { background: rgba(245,158,11,.15); color: var(--amber); }
+
+  /* MEDICINE LIST */
+  .med-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .med-item:last-child { border-bottom: none; }
+  .med-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .med-info { flex: 1; min-width: 0; }
+  .med-name { font-size: 14px; font-weight: 600; }
+  .med-detail { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .med-actions { display: flex; gap: 6px; }
+
+  /* SCHEDULE */
+  .sched-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .sched-item:last-child { border-bottom: none; }
+  .sched-time { font-size: 22px; font-weight: 700; color: var(--accent); min-width: 70px; }
+  .sched-info { flex: 1; padding: 0 12px; }
+  .sched-name { font-size: 14px; font-weight: 600; }
+  .sched-freq { font-size: 12px; color: var(--muted); }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: .3s; }
+  .slider:before { content:''; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider:before { transform: translateX(20px); }
+
+  /* HISTORY */
+  .hist-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .hist-item:last-child { border-bottom: none; }
+  .hist-icon { font-size: 18px; }
+  .hist-text { flex: 1; font-size: 13px; }
+  .hist-time { font-size: 11px; color: var(--muted); }
+
+  /* DEVICE STATUS */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat-card { background: var(--bg3); border-radius: 12px; padding: 14px; text-align: center; }
+  .stat-val { font-size: 26px; font-weight: 700; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; border-radius: 6px; transition: width .5s; }
+
+  /* MANUAL CONTROL */
+  .ctrl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border-radius: 20px 20px 0 0; padding: 20px 16px; width: 100%; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .close-btn { background: var(--border); border: none; color: var(--muted); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px; display:flex; align-items:center; justify-content:center; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 300; opacity: 0; pointer-events: none; transition: opacity .3s; }
+  #toast.show { opacity: 1; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 20px 0 10px; }
+
+  /* FIREBASE CONFIG NOTICE */
+  .config-notice { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); border-radius: 10px; padding: 12px; font-size: 13px; color: var(--amber); margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">💊 MedDispenser</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span style="font-size:12px;color:var(--muted)" id="conn-label">Online</span>
+    <div class="status-dot" id="status-dot"></div>
+  </div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('home')"><span class="tab-icon">🏠</span>Home</div>
+  <div class="tab" onclick="showTab('medicine')"><span class="tab-icon">💊</span>Medicine</div>
+  <div class="tab" onclick="showTab('schedule')"><span class="tab-icon">⏰</span>Orari</div>
+  <div class="tab" onclick="showTab('device')"><span class="tab-icon">🤖</span>Dispositivo</div>
+  <div class="tab" onclick="showTab('history')"><span class="tab-icon">📋</span>Storico</div>
+</div>
+
+<!-- ===== HOME ===== -->
+<div class="page active" id="page-home">
+  <div class="config-notice" id="firebase-notice">
+    ⚙️ <strong>Setup richiesto:</strong> Inserisci la tua configurazione Firebase nelle impostazioni per connettere il dispositivo.
+    <br><a href="#" onclick="showTab('device');return false;" style="color:var(--amber);text-decoration:underline;font-size:12px;margin-top:4px;display:inline-block;">Vai alle impostazioni →</a>
+  </div>
+
+  <div class="section-title">Prossime erogazioni</div>
+  <div id="next-doses-list">
+    <div class="card">
+      <div class="empty"><div class="empty-icon">⏳</div><div>Nessuna erogazione programmata</div><div style="font-size:12px;margin-top:6px;">Aggiungi medicine e orari nella sezione apposita</div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Riepilogo oggi</div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="stat-tot">0</div>
+      <div class="stat-lbl">Previste oggi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--green)" id="stat-done">0</div>
+      <div class="stat-lbl">Erogate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--amber)" id="stat-pend">0</div>
+      <div class="stat-lbl">Rimanenti</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--red)" id="stat-miss">0</div>
+      <div class="stat-lbl">Saltate</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MEDICINE ===== -->
+<div class="page" id="page-medicine">
+  <button class="btn btn-primary btn-full" onclick="openMedModal()" style="margin-bottom:16px;">
+    + Aggiungi medicina
+  </button>
+  <div id="med-list">
+    <div class="card">
+      <div class="empty"><div class="empty-icon">💊</div><div>Nessuna medicina aggiunta</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCHEDULE ===== -->
+<div class="page" id="page-schedule">
+  <button class="btn btn-primary btn-full" onclick="openSchedModal()" style="margin-bottom:16px;">
+    + Aggiungi orario
+  </button>
+  <div id="sched-list">
+    <div class="card">
+      <div class="empty"><div class="empty-icon">⏰</div><div>Nessun orario programmato</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DEVICE ===== -->
+<div class="page" id="page-device">
+  <div class="section-title">Configurazione Firebase</div>
+  <div class="card">
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="text" id="fb-apikey" placeholder="AIzaSy..." oninput="saveFirebaseConfig()">
+    </div>
+    <div class="form-group">
+      <label>Database URL</label>
+      <input type="text" id="fb-dburl" placeholder="https://mio-progetto-default-rtdb.firebaseio.com" oninput="saveFirebaseConfig()">
+    </div>
+    <div class="form-group">
+      <label>Project ID</label>
+      <input type="text" id="fb-projid" placeholder="mio-progetto-12345" oninput="saveFirebaseConfig()">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="testConnection()">🔌 Testa connessione</button>
+  </div>
+
+  <div class="section-title">Stato dispositivo</div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="dev-status">—</div>
+      <div class="stat-lbl">Stato</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="dev-wifi">—</div>
+      <div class="stat-lbl">WiFi dBm</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="dev-temp">—</div>
+      <div class="stat-lbl">Temp °C</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="dev-last">—</div>
+      <div class="stat-lbl">Ultimo hb.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Controllo manuale</div>
+  <div class="card">
+    <div class="ctrl-row">
+      <button class="btn btn-primary" onclick="sendCommand('rotate_carousel', {steps:200})">↻ Ruota carosello</button>
+      <button class="btn btn-success" onclick="sendCommand('dispense', {duration_ms:800})">💊 Eroga pillola</button>
+    </div>
+    <div class="ctrl-row">
+      <button class="btn btn-ghost" onclick="sendCommand('home_carousel', {})">⌂ Posizione home</button>
+      <button class="btn btn-danger" onclick="sendCommand('stop_all', {})">⏹ Stop tutto</button>
+    </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label>Scomparto target (1–10)</label>
+      <div style="display:flex;gap:8px;">
+        <input type="number" id="slot-num" min="1" max="10" value="1" style="flex:1">
+        <button class="btn btn-primary" onclick="goToSlot()">Vai</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Livelli scomparti</div>
+  <div class="card" id="slots-display">
+    <div style="font-size:13px;color:var(--muted)">Carica i dati dal dispositivo per vedere i livelli.</div>
+    <button class="btn btn-ghost btn-sm" onclick="refreshSlots()" style="margin-top:10px;">🔄 Aggiorna</button>
+  </div>
+</div>
+
+<!-- ===== HISTORY ===== -->
+<div class="page" id="page-history">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📋 Log erogazioni</div>
+      <button class="btn btn-ghost btn-sm" onclick="clearHistory()">Svuota</button>
+    </div>
+    <div id="hist-list">
+      <div class="empty"><div class="empty-icon">📋</div><div>Nessuna erogazione registrata</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+<!-- Add Medicine Modal -->
+<div class="modal-overlay" id="med-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="med-modal-title">Nuova medicina</span>
+      <button class="close-btn" onclick="closeModal('med-modal')">✕</button>
+    </div>
+    <div class="form-group" style="position:relative;">
+      <label>Nome medicina *</label>
+      <input type="text" id="med-name" placeholder="es. Aspirina, Nobistar..." autocomplete="off"
+        oninput="searchDrug(this.value)" onblur="setTimeout(()=>hideSuggestions(),200)">
+      <div id="drug-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.3);"></div>
+    </div>
+    <div class="form-group">
+      <label>Dosaggio</label>
+      <input type="text" id="med-dose" placeholder="es. 1 compressa">
+    </div>
+    <div class="form-group">
+      <label>Scomparto (1–7)</label>
+      <select id="med-slot"></select>
+      <div id="slot-hint" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div class="form-group">
+      <label>Quantità attuale (pillole)</label>
+      <input type="number" id="med-qty" min="0" value="30">
+    </div>
+    <div class="form-group">
+      <label>Colore identificativo</label>
+      <input type="color" id="med-color" value="#4f8ef7" style="height:40px;padding:4px;">
+    </div>
+    <div class="form-group">
+      <label>Dose minima</label>
+      <select id="med-half">
+        <option value="1">1 compressa intera</option>
+        <option value="0.5">½ compressa</option>
+        <option value="2">2 compresse</option>
+        <option value="1.5">1½ compressa</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note</label>
+      <textarea id="med-notes" rows="2" placeholder="Prendere a stomaco pieno..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveMedicine()">💾 Salva medicina</button>
+  </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div class="modal-overlay" id="sched-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span>Nuovi orari</span>
+      <button class="close-btn" onclick="closeModal('sched-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Medicina *</label>
+      <select id="sched-med-sel" onchange="updateSchedDefault()">
+        <option value="">-- Seleziona medicina --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Frequenza</label>
+      <select id="sched-freq">
+        <option value="daily">Ogni giorno</option>
+        <option value="weekly">Settimanale</option>
+        <option value="custom">Personalizzata</option>
+      </select>
+    </div>
+    <div id="sched-days-wrap" style="display:none">
+      <label style="font-size:13px;color:var(--muted);margin-bottom:8px;display:block;">Giorni della settimana</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="days-picker">
+        <button class="day-btn" data-day="0" onclick="toggleDay(this)">Dom</button>
+        <button class="day-btn" data-day="1" onclick="toggleDay(this)">Lun</button>
+        <button class="day-btn" data-day="2" onclick="toggleDay(this)">Mar</button>
+        <button class="day-btn" data-day="3" onclick="toggleDay(this)">Mer</button>
+        <button class="day-btn" data-day="4" onclick="toggleDay(this)">Gio</button>
+        <button class="day-btn" data-day="5" onclick="toggleDay(this)">Ven</button>
+        <button class="day-btn" data-day="6" onclick="toggleDay(this)">Sab</button>
+      </div>
+    </div>
+
+    <!-- Lista orari dinamica -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <label style="font-size:13px;color:var(--muted);">Orari di erogazione</label>
+      <button class="btn btn-ghost btn-sm" onclick="addTimeSlot()">+ Aggiungi orario</button>
+    </div>
+    <div id="time-slots-list"></div>
+
+    <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="saveSchedule()">💾 Salva tutti gli orari</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<style>
+.day-btn { padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg3); color:var(--muted); font-size:12px; cursor:pointer; transition:.15s; }
+.day-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+</style>
+
+<script>
+// =================== APP STATE ===================
+let medicines = JSON.parse(localStorage.getItem('medicines') || '[]');
+let schedules = JSON.parse(localStorage.getItem('schedules') || '[]');
+let history   = JSON.parse(localStorage.getItem('hist') || '[]');
+let fbConfig  = JSON.parse(localStorage.getItem('fbConfig') || '{}');
+let editMedId = null;
+
+// =================== TABS ===================
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const tabs = ['home','medicine','schedule','device','history'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  if (name === 'home') renderHome();
+  if (name === 'medicine') renderMedicines();
+  if (name === 'schedule') renderSchedules();
+  if (name === 'history') renderHistory();
+}
+
+// =================== MEDICINES ===================
+function openMedModal(id) {
+  editMedId = id || null;
+  const m = id ? medicines.find(x => x.id === id) : null;
+  document.getElementById('med-modal-title').textContent = m ? 'Modifica medicina' : 'Nuova medicina';
+  document.getElementById('med-name').value  = m ? m.name : '';
+  document.getElementById('med-dose').value  = m ? m.dose : '';
+  document.getElementById('med-qty').value   = m ? m.qty : 30;
+  document.getElementById('med-color').value = m ? m.color : '#4f8ef7';
+  document.getElementById('med-notes').value = m ? m.notes : '';
+  document.getElementById('med-half').value  = m ? (m.half || '1') : '1';
+
+  // Popola scomparti dinamicamente
+  const slotSel = document.getElementById('med-slot');
+  const hint    = document.getElementById('slot-hint');
+  const usedSlots = medicines.filter(x => x.id !== editMedId).map(x => x.slot);
+  const firstFree = [1,2,3,4,5,6,7,8,9,10].find(n => !usedSlots.includes(n)) || 1;
+  slotSel.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const occupied = usedSlots.includes(i);
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = occupied
+      ? `Scomparto ${i} — occupato (${(medicines.find(x=>x.slot===i)||{}).name||'?'})`
+      : `Scomparto ${i} — libero`;
+    opt.disabled = occupied;
+    opt.style.color = occupied ? '#666' : '';
+    slotSel.appendChild(opt);
+  }
+  slotSel.value = m ? m.slot : firstFree;
+  const freeCount = 10 - usedSlots.length;
+  hint.textContent = freeCount > 0
+    ? `${freeCount} scomparto/i libero/i — prossimo libero: ${firstFree}`
+    : '⚠️ Tutti gli scomparti sono occupati!';
+  hint.style.color = freeCount === 0 ? 'var(--red)' : 'var(--muted)';
+  openModal('med-modal');
+}
+
+function saveMedicine() {
+  const name = document.getElementById('med-name').value.trim();
+  if (!name) { showToast('⚠️ Inserisci il nome della medicina'); return; }
+  const slotSel = document.getElementById('med-slot');
+  if (slotSel.options[slotSel.selectedIndex].disabled) {
+    showToast('⚠️ Scomparto occupato! Scegline uno libero'); return;
+  }
+  const med = {
+    id: editMedId || Date.now().toString(),
+    name,
+    dose:  document.getElementById('med-dose').value.trim(),
+    slot:  parseInt(document.getElementById('med-slot').value),
+    qty:   parseInt(document.getElementById('med-qty').value) || 0,
+    half:  document.getElementById('med-half').value,
+    color: document.getElementById('med-color').value,
+    notes: document.getElementById('med-notes').value.trim(),
+    created: Date.now()
+  };
+  if (editMedId) {
+    medicines = medicines.map(m => m.id === editMedId ? med : m);
+  } else {
+    medicines.push(med);
+  }
+  saveData();
+  sendToFirebase('medicines/' + med.id, med);
+  closeModal('med-modal');
+  renderMedicines();
+  showToast('✅ Medicina salvata!');
+}
+
+function deleteMedicine(id) {
+  if (!confirm('Eliminare questa medicina?')) return;
+  medicines = medicines.filter(m => m.id !== id);
+  schedules = schedules.filter(s => s.medId !== id);
+  saveData();
+  renderMedicines();
+  showToast('🗑️ Medicina eliminata');
+}
+
+function renderMedicines() {
+  const el = document.getElementById('med-list');
+  if (!medicines.length) {
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-icon">💊</div><div>Nessuna medicina aggiunta</div></div></div>';
+    return;
+  }
+  el.innerHTML = medicines.map(m => `
+    <div class="card">
+      <div class="med-item">
+        <div class="med-icon" style="border:2px solid ${m.color}20;background:${m.color}20;">💊</div>
+        <div class="med-info">
+          <div class="med-name">${m.name}</div>
+          <div class="med-detail">${m.dose || 'Nessun dosaggio'} · Scomp. ${m.slot} · ${m.qty} pillole · dose: ${m.half || 1} cpr</div>
+          ${m.notes ? `<div class="med-detail" style="margin-top:2px;font-style:italic;">${m.notes}</div>` : ''}
+        </div>
+        <div class="med-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openMedModal('${m.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMedicine('${m.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${Math.min(100, m.qty/30*100)}%;background:${m.color}"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${m.qty} pillole rimanenti</div>
+    </div>
+  `).join('');
+}
+
+// =================== SCHEDULES ===================
+function openSchedModal() {
+  const sel = document.getElementById('sched-med-sel');
+  sel.innerHTML = '<option value="">-- Seleziona medicina --</option>' +
+    medicines.map(m => `<option value="${m.id}">${m.name} (Scomp.${m.slot})</option>`).join('');
+  document.getElementById('sched-freq').value = 'daily';
+  document.getElementById('sched-days-wrap').style.display = 'none';
+  // Reset slot orari con uno slot di default
+  document.getElementById('time-slots-list').innerHTML = '';
+  addTimeSlot('08:00', '1');
+  openModal('sched-modal');
+}
+
+function updateSchedDefault() {
+  // Quando cambia medicina aggiorna la qty default con la dose della medicina
+  const medId = document.getElementById('sched-med-sel').value;
+  const med = medicines.find(m => m.id === medId);
+  if (med && med.half) {
+    document.querySelectorAll('.slot-qty').forEach(sel => { sel.value = med.half; });
+  }
+}
+
+function addTimeSlot(defaultTime, defaultQty) {
+  const list = document.getElementById('time-slots-list');
+  const idx = list.children.length + 1;
+  const t = defaultTime || '08:00';
+  const q = defaultQty || '1';
+  const div = document.createElement('div');
+  div.className = 'slot-row';
+  div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;background:var(--bg3);border-radius:10px;padding:10px;';
+  div.innerHTML = `
+    <span style="font-size:12px;color:var(--muted);min-width:20px;">${idx}°</span>
+    <input type="time" class="slot-time" value="${t}" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-size:14px;">
+    <select class="slot-qty" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-size:13px;">
+      <option value="0.5">½ cpr</option>
+      <option value="1" ${q=='1'?'selected':''}>1 cpr</option>
+      <option value="1.5">1½ cpr</option>
+      <option value="2" ${q=='2'?'selected':''}>2 cpr</option>
+      <option value="3">3 cpr</option>
+    </select>
+    <button onclick="this.parentElement.remove();renumberSlots()" style="background:var(--red);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>`;
+  list.appendChild(div);
+}
+
+function renumberSlots() {
+  document.querySelectorAll('.slot-row').forEach((row, i) => {
+    row.querySelector('span').textContent = (i+1) + '°';
+  });
+}
+
+function toggleDay(btn) { btn.classList.toggle('active'); }
+
+function saveSchedule() {
+  const medId = document.getElementById('sched-med-sel').value;
+  if (!medId) { showToast('⚠️ Seleziona una medicina'); return; }
+  const freq = document.getElementById('sched-freq').value;
+  const days = freq === 'weekly' || freq === 'custom'
+    ? [...document.querySelectorAll('.day-btn.active')].map(b => parseInt(b.dataset.day))
+    : [];
+  const med = medicines.find(m => m.id === medId);
+  const slots = document.querySelectorAll('.slot-row');
+  if (!slots.length) { showToast('⚠️ Aggiungi almeno un orario'); return; }
+  let saved = 0;
+  slots.forEach((row, i) => {
+    const time = row.querySelector('.slot-time').value;
+    const qty  = parseFloat(row.querySelector('.slot-qty').value) || 1;
+    if (!time) return;
+    const sched = {
+      id: Date.now().toString() + '_' + i,
+      medId, time, freq, days, qty,
+      active: true,
+      medName: med ? med.name : '',
+      slot: med ? med.slot : 1,
+      half: med ? (med.half || '1') : '1'
+    };
+    schedules.push(sched);
+    sendToFirebase('schedules/' + sched.id, sched);
+    saved++;
+  });
+  saveData();
+  closeModal('sched-modal');
+  renderSchedules();
+  showToast('✅ ' + saved + ' orario/i salvato/i!');
+}
+
+document.getElementById('sched-freq').addEventListener('change', function() {
+  document.getElementById('sched-days-wrap').style.display =
+    (this.value === 'weekly' || this.value === 'custom') ? 'block' : 'none';
+});
+
+function toggleSchedule(id, val) {
+  schedules = schedules.map(s => s.id === id ? {...s, active: val} : s);
+  saveData();
+  sendToFirebase('schedules/' + id + '/active', val);
+}
+
+function deleteSchedule(id) {
+  schedules = schedules.filter(s => s.id !== id);
+  saveData();
+  renderSchedules();
+  showToast('🗑️ Orario eliminato');
+}
+
+const freqLabel = { daily: 'Ogni giorno', weekly: 'Settimanale', custom: 'Personalizzato' };
+const dayNames  = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+function renderSchedules() {
+  const el = document.getElementById('sched-list');
+  if (!schedules.length) {
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-icon">⏰</div><div>Nessun orario programmato</div></div></div>';
+    return;
+  }
+  const sorted = [...schedules].sort((a,b) => a.time.localeCompare(b.time));
+  el.innerHTML = '<div class="card">' + sorted.map(s => {
+    const med = medicines.find(m => m.id === s.medId);
+    const daysStr = s.days.length ? s.days.map(d => dayNames[d]).join(', ') : '';
+    return `
+    <div class="sched-item">
+      <div class="sched-time">${s.time}</div>
+      <div class="sched-info">
+        <div class="sched-name">${med ? med.name : 'Medicina eliminata'} × ${s.qty}</div>
+        <div class="sched-freq">${freqLabel[s.freq]}${daysStr ? ' · ' + daysStr : ''}</div>
+      </div>
+      <label class="toggle" style="margin-right:8px;">
+        <input type="checkbox" ${s.active ? 'checked' : ''} onchange="toggleSchedule('${s.id}', this.checked)">
+        <span class="slider"></span>
+      </label>
+      <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">🗑️</button>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// =================== HOME ===================
+function renderHome() {
+  const today = new Date().getDay();
+  const now   = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const upcoming = schedules.filter(s => {
+    if (!s.active) return false;
+    if (s.freq === 'daily') return true;
+    if (s.freq === 'weekly' || s.freq === 'custom') return s.days.includes(today);
+    return true;
+  }).sort((a,b) => a.time.localeCompare(b.time));
+
+  document.getElementById('stat-tot').textContent  = upcoming.length;
+  const done = history.filter(h => {
+    const d = new Date(h.ts);
+    return d.toDateString() === now.toDateString();
+  }).length;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-pend').textContent = Math.max(0, upcoming.length - done);
+  document.getElementById('stat-miss').textContent = 0;
+
+  const el = document.getElementById('next-doses-list');
+  if (!upcoming.length) {
+    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-icon">⏳</div><div>Nessuna erogazione oggi</div></div></div>';
+    return;
+  }
+  el.innerHTML = upcoming.slice(0,5).map(s => {
+    const med = medicines.find(m => m.id === s.medId);
+    const [hh,mm] = s.time.split(':').map(Number);
+    const schedMin = hh*60 + mm;
+    const diff = schedMin - nowMin;
+    const upcoming_label = diff < 0 ? 'già passata' : diff < 60 ? `tra ${diff} min` : `tra ${Math.floor(diff/60)}h ${diff%60}m`;
+    return `<div class="card" style="border-left:3px solid ${med ? med.color : '#4f8ef7'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:16px;font-weight:700;">${s.time}</div>
+          <div style="font-size:13px;margin-top:2px;">${med ? med.name : '?'} × ${s.qty}</div>
+        </div>
+        <span class="badge ${diff < 0 ? 'badge-red' : diff < 30 ? 'badge-amber' : 'badge-blue'}">${upcoming_label}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// =================== HISTORY ===================
+async function renderHistory() {
+  const el = document.getElementById('hist-list');
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">🔄 Caricamento...</div>';
+  // Carica log da Firebase se configurato
+  if (fbConfig.databaseURL) {
+    try {
+      const res = await fetch(fbConfig.databaseURL + '/log.json');
+      const data = await res.json();
+      if (data && typeof data === 'object') {
+        const fbHistory = Object.values(data).sort((a,b) => b.ts - a.ts).slice(0,50);
+        el.innerHTML = fbHistory.map(h =>
+          `<div class="hist-item">
+            <div class="hist-icon">${h.success ? '✅' : '❌'}</div>
+            <div class="hist-text">
+              <strong>${h.medName || '?'}</strong> × ${h.qty || 1}
+              <br><span style="color:var(--muted);font-size:11px;">${h.hour !== undefined ? 'ore ' + h.hour + ':' + String(h.minute).padStart(2,'0') : ''}</span>
+            </div>
+            <div class="hist-time">${new Date(h.ts * 1000).toLocaleString('it-IT')}</div>
+          </div>`
+        ).join('') || '<div class="empty"><div class="empty-icon">📋</div><div>Nessuna erogazione registrata</div></div>';
+        return;
+      }
+    } catch(e) { console.warn('Firebase log error:', e); }
+  }
+  // Fallback locale
+  if (!history.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div>Nessuna erogazione registrata</div></div>';
+    return;
+  }
+  el.innerHTML = [...history].reverse().slice(0,50).map(h =>
+    `<div class="hist-item">
+      <div class="hist-icon">${h.success ? '✅' : '❌'}</div>
+      <div class="hist-text">
+        <strong>${h.medName || '?'}</strong> × ${h.qty || 1}
+        <br><span style="color:var(--muted);font-size:11px;">${h.notes || ''}</span>
+      </div>
+      <div class="hist-time">${new Date(h.ts).toLocaleString('it-IT')}</div>
+    </div>`
+  ).join('');
+}
+
+function clearHistory() {
+  if (!confirm('Svuotare lo storico?')) return;
+  history = [];
+  saveData();
+  renderHistory();
+}
+
+// =================== FIREBASE CONFIG ===================
+function saveFirebaseConfig() {
+  fbConfig = {
+    apiKey:     document.getElementById('fb-apikey').value.trim(),
+    databaseURL: document.getElementById('fb-dburl').value.trim(),
+    projectId:  document.getElementById('fb-projid').value.trim()
+  };
+  localStorage.setItem('fbConfig', JSON.stringify(fbConfig));
+  const ok = fbConfig.apiKey && fbConfig.databaseURL && fbConfig.projectId;
+  document.getElementById('firebase-notice').style.display = ok ? 'none' : 'block';
+}
+
+function loadFirebaseConfig() {
+  // Credenziali pre-configurate — non serve inserirle manualmente
+  if (!fbConfig.apiKey) {
+    fbConfig = {
+      apiKey: "AIzaSyCU9iWhGQJCOUTBJaweNtXUAMgMg80PhjE",
+      databaseURL: "https://dispenser-famiglia-buono-4cd30-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "dispenser-famiglia-buono-4cd30"
+    };
+    localStorage.setItem('fbConfig', JSON.stringify(fbConfig));
+  }
+  document.getElementById('fb-apikey').value  = fbConfig.apiKey  || '';
+  document.getElementById('fb-dburl').value   = fbConfig.databaseURL || '';
+  document.getElementById('fb-projid').value  = fbConfig.projectId || '';
+  const ok = fbConfig.apiKey && fbConfig.databaseURL && fbConfig.projectId;
+  document.getElementById('firebase-notice').style.display = ok ? 'none' : 'block';
+}
+
+async function testConnection() {
+  if (!fbConfig.databaseURL) { showToast('⚠️ Inserisci il Database URL'); return; }
+  showToast('🔌 Connessione in corso...');
+  try {
+    const url = `${fbConfig.databaseURL}/ping.json?auth=${fbConfig.apiKey}`;
+    await fetch(url, { method:'PUT', body: JSON.stringify({ts: Date.now()}) });
+    showToast('✅ Firebase connesso!');
+    document.getElementById('status-dot').style.background = 'var(--green)';
+  } catch(e) {
+    showToast('❌ Errore: ' + e.message);
+    document.getElementById('status-dot').style.background = 'var(--red)';
+  }
+}
+
+// =================== FIREBASE SEND ===================
+async function sendToFirebase(path, data) {
+  if (!fbConfig.databaseURL) return;
+  try {
+    await fetch(`${fbConfig.databaseURL}/${path}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch(e) { console.warn('Firebase write error:', e); }
+}
+
+// =================== DEVICE COMMANDS ===================
+async function sendCommand(cmd, params) {
+  if (!fbConfig.databaseURL) { showToast('⚠️ Configura Firebase prima'); return; }
+  const payload = { cmd, params, ts: Date.now(), done: false };
+  await sendToFirebase('command', payload);
+  showToast('📡 Comando inviato: ' + cmd);
+  logHistory({ medName: 'Manuale', qty: params.qty || 1, success: true, notes: cmd, ts: Date.now() });
+}
+
+function goToSlot() {
+  const n = parseInt(document.getElementById('slot-num').value);
+  if (n < 1 || n > 10) { showToast('⚠️ Scomparto 1–10'); return; }
+  sendCommand('goto_slot', { slot: n });
+}
+
+async function refreshSlots() {
+  if (!fbConfig.databaseURL) { showToast('⚠️ Configura Firebase prima'); return; }
+  try {
+    const res = await fetch(`${fbConfig.databaseURL}/device_status.json`);
+    const data = await res.json();
+    if (data) {
+      document.getElementById('dev-status').textContent = data.state || '—';
+      // Supporta sia rssi che wifi_rssi
+      const rssi = data.rssi || data.wifi_rssi;
+      document.getElementById('dev-wifi').textContent = rssi ? rssi + ' dBm' : '—';
+      // Temperatura opzionale
+      document.getElementById('dev-temp').textContent = data.temp_c || '—';
+      // Supporta sia ts che last_heartbeat
+      const ts = data.ts || data.last_heartbeat;
+      let ago = '—';
+      if (ts) {
+        // ts è in secondi (epoch Unix), Date.now() è in millisecondi
+        const tsMs = ts * 1000;
+        const diff = Math.round((Date.now() - tsMs) / 1000);
+        if (diff < 0) ago = 'ora';
+        else if (diff < 60) ago = diff + 's fa';
+        else if (diff < 3600) ago = Math.round(diff/60) + 'min fa';
+        else ago = Math.round(diff/3600) + 'h fa';
+      }
+      document.getElementById('dev-last').textContent = ago;
+      // Mostra orari caricati
+      if (data.scheds !== undefined) {
+        showToast('✅ Aggiornato — ' + data.scheds + ' orari attivi, ore ' + (data.hour||'?') + ':' + String(data.min||0).padStart(2,'0'));
+      } else {
+        showToast('✅ Dati aggiornati');
+      }
+      if (data.slots) renderSlots(data.slots);
+    }
+  } catch(e) { showToast('❌ Errore lettura'); }
+}
+
+function renderSlots(slots) {
+  const el = document.getElementById('slots-display');
+  el.innerHTML = Object.entries(slots).map(([k,v]) => {
+    const pct = Math.min(100, (v.qty / (v.max_qty || 30)) * 100);
+    const med = medicines.find(m => m.slot === parseInt(k));
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+        <span>Scomp. ${k}${med ? ' · ' + med.name : ''}</span>
+        <span style="color:var(--muted)">${v.qty || 0} pz</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${pct}%;background:${pct < 20 ? 'var(--red)' : pct < 50 ? 'var(--amber)' : 'var(--green)'}"></div>
+      </div>
+    </div>`;
+  }).join('') + `<button class="btn btn-ghost btn-sm" onclick="refreshSlots()" style="margin-top:8px;">🔄 Aggiorna</button>`;
+}
+
+// =================== SCHEDULER (polling) ===================
+function checkScheduler() {
+  const now   = new Date();
+  const today = now.getDay();
+  const hhmm  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  schedules.forEach(s => {
+    if (!s.active || s.time !== hhmm) return;
+    if (s.freq === 'daily') triggerDispense(s);
+    else if ((s.freq === 'weekly' || s.freq === 'custom') && s.days.includes(today)) triggerDispense(s);
+  });
+}
+
+async function triggerDispense(sched) {
+  const med = medicines.find(m => m.id === sched.medId);
+  if (!med) return;
+  const key = `triggered_${sched.id}_${new Date().toDateString()}`;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, '1');
+  const payload = {
+    cmd: 'dispense',
+    params: { slot: med.slot, qty: sched.qty },
+    medId: sched.medId,
+    medName: med.name,
+    ts: Date.now(),
+    done: false
+  };
+  await sendToFirebase('command', payload);
+  logHistory({ medName: med.name, qty: sched.qty, success: true, notes: 'automatico', ts: Date.now() });
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('💊 Pillola erogata', { body: `${med.name} × ${sched.qty}` });
+  }
+}
+
+function logHistory(entry) {
+  history.push(entry);
+  if (history.length > 200) history = history.slice(-200);
+  saveData();
+}
+
+// =================== UTILS ===================
+function saveData() {
+  localStorage.setItem('medicines', JSON.stringify(medicines));
+  localStorage.setItem('schedules', JSON.stringify(schedules));
+  localStorage.setItem('hist',      JSON.stringify(history));
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// =================== DRUG SEARCH AUTOCOMPLETE ===================
+let searchTimer = null;
+
+async function searchDrug(query) {
+  const box = document.getElementById('drug-suggestions');
+  if (query.length < 2) { box.style.display = 'none'; return; }
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    box.style.display = 'block';
+    box.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--muted);">🔍 Ricerca in corso...</div>';
+    const results = await fetchDrugSuggestions(query);
+    if (!results.length) {
+      box.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--muted);">Nessun risultato — inserisci manualmente</div>';
+      return;
+    }
+    box.innerHTML = results.map(r => `
+      <div onclick="selectDrug(${JSON.stringify(r).replace(/"/g,'&quot;')})"
+        style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:.15s;"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <div style="font-size:13px;font-weight:600;">${r.name}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${r.dose} · ${r.principle}</div>
+      </div>`).join('');
+  }, 400);
+}
+
+// =================== DATABASE FARMACI ITALIANI ===================
+const FARMACI_IT = [
+  // Anticoagulanti
+  {name:'Eliquis 2.5mg',    dose:'2.5mg',  principle:'Apixaban',        notes:'Anticoagulante — prevenzione trombosi'},
+  {name:'Eliquis 5mg',      dose:'5mg',    principle:'Apixaban',        notes:'Anticoagulante — fibrillazione atriale'},
+  {name:'Xarelto 10mg',     dose:'10mg',   principle:'Rivaroxaban',     notes:'Anticoagulante orale'},
+  {name:'Xarelto 20mg',     dose:'20mg',   principle:'Rivaroxaban',     notes:'Anticoagulante orale'},
+  {name:'Coumadin 5mg',     dose:'5mg',    principle:'Warfarin',        notes:'Anticoagulante — monitorare INR'},
+  {name:'Pradaxa 110mg',    dose:'110mg',  principle:'Dabigatran',      notes:'Anticoagulante orale'},
+  {name:'Pradaxa 150mg',    dose:'150mg',  principle:'Dabigatran',      notes:'Anticoagulante orale'},
+  // Beta-bloccanti / Cardio
+  {name:'Nobistar 1.25mg',  dose:'1.25mg', principle:'Nebivololo',      notes:'Beta-bloccante — insufficienza cardiaca'},
+  {name:'Nobistar 2.5mg',   dose:'2.5mg',  principle:'Nebivololo',      notes:'Beta-bloccante — insufficienza cardiaca'},
+  {name:'Nobistar 5mg',     dose:'5mg',    principle:'Nebivololo',      notes:'Beta-bloccante — ipertensione'},
+  {name:'Nobistar 10mg',    dose:'10mg',   principle:'Nebivololo',      notes:'Beta-bloccante — ipertensione'},
+  {name:'Concor 2.5mg',     dose:'2.5mg',  principle:'Bisoprololo',     notes:'Beta-bloccante — ipertensione'},
+  {name:'Concor 5mg',       dose:'5mg',    principle:'Bisoprololo',     notes:'Beta-bloccante — ipertensione'},
+  {name:'Concor 10mg',      dose:'10mg',   principle:'Bisoprololo',     notes:'Beta-bloccante — ipertensione'},
+  {name:'Carvedilolo 6.25mg',dose:'6.25mg',principle:'Carvedilolo',     notes:'Beta-bloccante — scompenso cardiaco'},
+  {name:'Carvedilolo 25mg', dose:'25mg',   principle:'Carvedilolo',     notes:'Beta-bloccante — scompenso cardiaco'},
+  {name:'Atenololo 50mg',   dose:'50mg',   principle:'Atenololo',       notes:'Beta-bloccante — ipertensione'},
+  {name:'Atenololo 100mg',  dose:'100mg',  principle:'Atenololo',       notes:'Beta-bloccante — ipertensione'},
+  // ACE-inibitori / Sartani
+  {name:'Ramipril 2.5mg',   dose:'2.5mg',  principle:'Ramipril',        notes:'ACE-inibitore — ipertensione'},
+  {name:'Ramipril 5mg',     dose:'5mg',    principle:'Ramipril',        notes:'ACE-inibitore — ipertensione'},
+  {name:'Ramipril 10mg',    dose:'10mg',   principle:'Ramipril',        notes:'ACE-inibitore — ipertensione'},
+  {name:'Zestril 5mg',      dose:'5mg',    principle:'Lisinopril',      notes:'ACE-inibitore — ipertensione'},
+  {name:'Zestril 20mg',     dose:'20mg',   principle:'Lisinopril',      notes:'ACE-inibitore — ipertensione'},
+  {name:'Olmesartan 10mg',  dose:'10mg',   principle:'Olmesartan',      notes:'Sartano — ipertensione'},
+  {name:'Olmesartan 20mg',  dose:'20mg',   principle:'Olmesartan',      notes:'Sartano — ipertensione'},
+  {name:'Valsartan 80mg',   dose:'80mg',   principle:'Valsartan',       notes:'Sartano — ipertensione'},
+  {name:'Valsartan 160mg',  dose:'160mg',  principle:'Valsartan',       notes:'Sartano — ipertensione'},
+  {name:'Entresto 24/26mg', dose:'24/26mg',principle:'Sacubitril/Valsartan',notes:'Scompenso cardiaco'},
+  {name:'Entresto 49/51mg', dose:'49/51mg',principle:'Sacubitril/Valsartan',notes:'Scompenso cardiaco'},
+  // Diuretici
+  {name:'Lasix 25mg',       dose:'25mg',   principle:'Furosemide',      notes:'Diuretico — edemi, scompenso cardiaco'},
+  {name:'Lasix 500mg',      dose:'500mg',  principle:'Furosemide',      notes:'Diuretico potente'},
+  {name:'Idroclorotiazide 25mg',dose:'25mg',principle:'Idroclorotiazide',notes:'Diuretico tiazidico'},
+  {name:'Torasemide 5mg',   dose:'5mg',    principle:'Torasemide',      notes:'Diuretico — scompenso cardiaco'},
+  {name:'Torasemide 10mg',  dose:'10mg',   principle:'Torasemide',      notes:'Diuretico — scompenso cardiaco'},
+  {name:'Spirono 25mg',     dose:'25mg',   principle:'Spironolattone',  notes:'Diuretico risparmiatore di potassio'},
+  {name:'Spirono 100mg',    dose:'100mg',  principle:'Spironolattone',  notes:'Diuretico risparmiatore di potassio'},
+  // Statine / Colesterolo
+  {name:'Crestor 5mg',      dose:'5mg',    principle:'Rosuvastatina',   notes:'Statina — ipercolesterolemia'},
+  {name:'Crestor 10mg',     dose:'10mg',   principle:'Rosuvastatina',   notes:'Statina — ipercolesterolemia'},
+  {name:'Crestor 20mg',     dose:'20mg',   principle:'Rosuvastatina',   notes:'Statina — ipercolesterolemia'},
+  {name:'Lipitor 10mg',     dose:'10mg',   principle:'Atorvastatina',   notes:'Statina — ipercolesterolemia'},
+  {name:'Lipitor 20mg',     dose:'20mg',   principle:'Atorvastatina',   notes:'Statina — ipercolesterolemia'},
+  {name:'Lipitor 40mg',     dose:'40mg',   principle:'Atorvastatina',   notes:'Statina — ipercolesterolemia'},
+  {name:'Zocor 20mg',       dose:'20mg',   principle:'Simvastatina',    notes:'Statina — ipercolesterolemia'},
+  {name:'Zocor 40mg',       dose:'40mg',   principle:'Simvastatina',    notes:'Statina — ipercolesterolemia'},
+  // Diabete
+  {name:'Metformina 500mg', dose:'500mg',  principle:'Metformina',      notes:'Antidiabetico orale — diabete tipo 2'},
+  {name:'Metformina 850mg', dose:'850mg',  principle:'Metformina',      notes:'Antidiabetico orale — diabete tipo 2'},
+  {name:'Metformina 1000mg',dose:'1000mg', principle:'Metformina',      notes:'Antidiabetico orale — diabete tipo 2'},
+  {name:'Glucophage 500mg', dose:'500mg',  principle:'Metformina',      notes:'Antidiabetico orale'},
+  {name:'Januvia 100mg',    dose:'100mg',  principle:'Sitagliptin',     notes:'Antidiabetico — diabete tipo 2'},
+  {name:'Jardiance 10mg',   dose:'10mg',   principle:'Empagliflozin',   notes:'Antidiabetico — anche scompenso cardiaco'},
+  {name:'Jardiance 25mg',   dose:'25mg',   principle:'Empagliflozin',   notes:'Antidiabetico — anche scompenso cardiaco'},
+  {name:'Forxiga 10mg',     dose:'10mg',   principle:'Dapagliflozin',   notes:'Antidiabetico — anche scompenso cardiaco'},
+  // Antiaggreganti
+  {name:'Aspirina 100mg',   dose:'100mg',  principle:'Acido Acetilsalicilico', notes:'Antiaggregante piastrinico'},
+  {name:'Cardioaspirin 100mg',dose:'100mg',principle:'Acido Acetilsalicilico', notes:'Antiaggregante — prevenzione cardiovascolare'},
+  {name:'Plavix 75mg',      dose:'75mg',   principle:'Clopidogrel',     notes:'Antiaggregante — prevenzione infarto'},
+  {name:'Brilique 60mg',    dose:'60mg',   principle:'Ticagrelor',      notes:'Antiaggregante — sindromi coronariche'},
+  {name:'Brilique 90mg',    dose:'90mg',   principle:'Ticagrelor',      notes:'Antiaggregante — sindromi coronariche'},
+  // Tireoide
+  {name:'Eutirox 25mcg',    dose:'25mcg',  principle:'Levotiroxina',    notes:'Ormone tiroideo — ipotiroidismo'},
+  {name:'Eutirox 50mcg',    dose:'50mcg',  principle:'Levotiroxina',    notes:'Ormone tiroideo — ipotiroidismo'},
+  {name:'Eutirox 75mcg',    dose:'75mcg',  principle:'Levotiroxina',    notes:'Ormone tiroideo — ipotiroidismo'},
+  {name:'Eutirox 100mcg',   dose:'100mcg', principle:'Levotiroxina',    notes:'Ormone tiroideo — ipotiroidismo'},
+  {name:'Eutirox 125mcg',   dose:'125mcg', principle:'Levotiroxina',    notes:'Ormone tiroideo — ipotiroidismo'},
+  {name:'Eutirox 150mcg',   dose:'150mcg', principle:'Levotiroxina',    notes:'Ormone tiroideo — ipotiroidismo'},
+  // Gastroprotettori
+  {name:'Omeprazolo 20mg',  dose:'20mg',   principle:'Omeprazolo',      notes:'Gastroprotettore — reflusso gastrico'},
+  {name:'Omeprazolo 40mg',  dose:'40mg',   principle:'Omeprazolo',      notes:'Gastroprotettore — ulcera gastrica'},
+  {name:'Nexium 20mg',      dose:'20mg',   principle:'Esomeprazolo',    notes:'Gastroprotettore — reflusso gastrico'},
+  {name:'Nexium 40mg',      dose:'40mg',   principle:'Esomeprazolo',    notes:'Gastroprotettore — ulcera peptica'},
+  {name:'Pantoprazolo 20mg',dose:'20mg',   principle:'Pantoprazolo',    notes:'Gastroprotettore'},
+  {name:'Pantoprazolo 40mg',dose:'40mg',   principle:'Pantoprazolo',    notes:'Gastroprotettore'},
+  {name:'Lansoprazolo 15mg',dose:'15mg',   principle:'Lansoprazolo',    notes:'Gastroprotettore'},
+  {name:'Lansoprazolo 30mg',dose:'30mg',   principle:'Lansoprazolo',    notes:'Gastroprotettore'},
+  // Antiipertensivi calcio-antagonisti
+  {name:'Norvasc 5mg',      dose:'5mg',    principle:'Amlodipina',      notes:'Calcio-antagonista — ipertensione'},
+  {name:'Norvasc 10mg',     dose:'10mg',   principle:'Amlodipina',      notes:'Calcio-antagonista — ipertensione'},
+  {name:'Amlodipina 5mg',   dose:'5mg',    principle:'Amlodipina',      notes:'Calcio-antagonista — ipertensione'},
+  {name:'Amlodipina 10mg',  dose:'10mg',   principle:'Amlodipina',      notes:'Calcio-antagonista — ipertensione'},
+  {name:'Diltiazem 60mg',   dose:'60mg',   principle:'Diltiazem',       notes:'Calcio-antagonista — aritmie'},
+  {name:'Diltiazem 120mg',  dose:'120mg',  principle:'Diltiazem',       notes:'Calcio-antagonista — aritmie'},
+  // Antiaritmici
+  {name:'Cordarone 100mg',  dose:'100mg',  principle:'Amiodarone',      notes:'Antiaritmico — fibrillazione atriale'},
+  {name:'Cordarone 200mg',  dose:'200mg',  principle:'Amiodarone',      notes:'Antiaritmico — fibrillazione atriale'},
+  {name:'Digossina 0.125mg',dose:'0.125mg',principle:'Digossina',       notes:'Glicosido cardiaco — scompenso/aritmie'},
+  {name:'Digossina 0.25mg', dose:'0.25mg', principle:'Digossina',       notes:'Glicosido cardiaco — scompenso/aritmie'},
+  // Altri comuni
+  {name:'Bentelan 0.5mg',   dose:'0.5mg',  principle:'Betametasone',    notes:'Corticosteroide — antiinfiammatorio'},
+  {name:'Deltacortene 5mg', dose:'5mg',    principle:'Prednisone',      notes:'Corticosteroide — antiinfiammatorio'},
+  {name:'Deltacortene 25mg',dose:'25mg',   principle:'Prednisone',      notes:'Corticosteroide — antiinfiammatorio'},
+  {name:'Xanax 0.25mg',     dose:'0.25mg', principle:'Alprazolam',      notes:'Ansiolitico — ansia'},
+  {name:'Xanax 0.5mg',      dose:'0.5mg',  principle:'Alprazolam',      notes:'Ansiolitico — ansia'},
+  {name:'Tavor 1mg',        dose:'1mg',    principle:'Lorazepam',       notes:'Ansiolitico — ansia, insonnia'},
+  {name:'Tavor 2.5mg',      dose:'2.5mg',  principle:'Lorazepam',       notes:'Ansiolitico — ansia'},
+  {name:'Zoloft 50mg',      dose:'50mg',   principle:'Sertralina',      notes:'Antidepressivo SSRI'},
+  {name:'Zoloft 100mg',     dose:'100mg',  principle:'Sertralina',      notes:'Antidepressivo SSRI'},
+  {name:'Lexotan 1.5mg',    dose:'1.5mg',  principle:'Bromazepam',      notes:'Ansiolitico — ansia'},
+  {name:'Lexotan 3mg',      dose:'3mg',    principle:'Bromazepam',      notes:'Ansiolitico — ansia'},
+  {name:'Voltaren 50mg',    dose:'50mg',   principle:'Diclofenac',      notes:'FANS — dolore, infiammazione'},
+  {name:'Brufen 400mg',     dose:'400mg',  principle:'Ibuprofene',      notes:'FANS — dolore, febbre'},
+  {name:'Brufen 600mg',     dose:'600mg',  principle:'Ibuprofene',      notes:'FANS — dolore, infiammazione'},
+  {name:'Aulin 100mg',      dose:'100mg',  principle:'Nimesulide',      notes:'FANS — dolore, infiammazione'},
+  {name:'Tachipirina 500mg',dose:'500mg',  principle:'Paracetamolo',    notes:'Analgesico — dolore, febbre'},
+  {name:'Tachipirina 1000mg',dose:'1000mg',principle:'Paracetamolo',   notes:'Analgesico — dolore, febbre'},
+  {name:'Efferalgan 500mg', dose:'500mg',  principle:'Paracetamolo',    notes:'Analgesico — dolore, febbre'},
+  {name:'Cardura 2mg',      dose:'2mg',    principle:'Doxazosina',      notes:'Alfa-bloccante — ipertensione, prostata'},
+  {name:'Cardura 4mg',      dose:'4mg',    principle:'Doxazosina',      notes:'Alfa-bloccante — ipertensione, prostata'},
+  {name:'Omnic 0.4mg',      dose:'0.4mg',  principle:'Tamsulosina',     notes:'Alfa-bloccante — ipertrofia prostatica'},
+  {name:'Avodart 0.5mg',    dose:'0.5mg',  principle:'Dutasteride',     notes:'5-alfa reduttasi — ipertrofia prostatica'},
+];
+
+async function fetchDrugSuggestions(query) {
+  const q = query.toLowerCase().trim();
+  // Cerca nel database italiano locale
+  const local = FARMACI_IT.filter(f =>
+    f.name.toLowerCase().includes(q) ||
+    f.principle.toLowerCase().includes(q)
+  ).slice(0, 6);
+  if (local.length >= 2) return local;
+  // Se non trova abbastanza risultati locali, prova OpenFDA come fallback
+  try {
+    const url = 'https://api.fda.gov/drug/label.json?search=openfda.brand_name:' + encodeURIComponent(query) + '&limit=3';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.results) {
+      data.results.forEach(d => {
+        const name = d.openfda?.brand_name?.[0] || '';
+        const principle = d.openfda?.generic_name?.[0] || '';
+        const dose = d.openfda?.strength?.[0] || '';
+        const notes = d.indications_and_usage?.[0]?.substring(0,80) || '';
+        if (name && !local.find(r => r.name === name)) local.push({ name, dose, principle, notes });
+      });
+    }
+  } catch(e) {}
+  // Se ancora niente, usa il testo digitato
+  if (!local.length) {
+    local.push({ name: query, dose: '', principle: 'Inserisci dosaggio manualmente', notes: '' });
+  }
+  return local.slice(0, 6);
+}
+
+function selectDrug(drug) {
+  document.getElementById('med-name').value  = drug.name;
+  document.getElementById('med-dose').value  = drug.dose || '';
+  document.getElementById('med-notes').value = drug.notes || '';
+  hideSuggestions();
+}
+
+function hideSuggestions() {
+  const box = document.getElementById('drug-suggestions');
+  if (box) box.style.display = 'none';
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); })
+);
+
+// Notifications permission
+if ('Notification' in window) Notification.requestPermission();
+
+// =================== INIT ===================
+loadFirebaseConfig();
+renderHome();
+setInterval(checkScheduler, 30000);
+setInterval(() => {
+  if (document.getElementById('page-home').classList.contains('active')) renderHome();
+}, 60000);
+</script>
+</body>
+</html>
