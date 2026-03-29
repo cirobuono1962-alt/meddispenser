@@ -654,7 +654,7 @@ function renderSchedules() {
 }
 
 // =================== HOME ===================
-function renderHome() {
+async function renderHome() {
   const today = new Date().getDay();
   const now   = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
@@ -666,10 +666,26 @@ function renderHome() {
   }).sort((a,b) => a.time.localeCompare(b.time));
 
   document.getElementById('stat-tot').textContent  = upcoming.length;
-  const done = history.filter(h => {
-    const d = new Date(h.ts);
-    return d.toDateString() === now.toDateString();
-  }).length;
+  // Conta erogazioni di oggi da Firebase (ts in secondi epoch)
+  let done = 0;
+  try {
+    const logRes = await fetch(fbConfig.databaseURL + '/log.json');
+    const logData = await logRes.json();
+    if (logData && typeof logData === 'object') {
+      done = Object.values(logData).filter(h => {
+        if (!h || !h.ts) return false;
+        const ts = h.ts < 2000000000 ? h.ts * 1000 : h.ts; // converti da epoch secondi
+        const d = new Date(ts);
+        return d.toDateString() === now.toDateString();
+      }).length;
+    }
+  } catch(e) {
+    // fallback a history locale
+    done = history.filter(h => {
+      const d = new Date(h.ts);
+      return d.toDateString() === now.toDateString();
+    }).length;
+  }
   document.getElementById('stat-done').textContent = done;
   document.getElementById('stat-pend').textContent = Math.max(0, upcoming.length - done);
   document.getElementById('stat-miss').textContent = 0;
