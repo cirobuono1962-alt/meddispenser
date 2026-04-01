@@ -820,10 +820,17 @@ async function sendToFirebase(path, data) {
 // =================== DEVICE COMMANDS ===================
 async function sendCommand(cmd, params) {
   if (!fbConfig.databaseURL) { showToast('⚠️ Configura Firebase prima'); return; }
-  const payload = { cmd, params, ts: Date.now(), done: false };
-  await sendToFirebase('command', payload);
-  showToast('📡 Comando inviato: ' + cmd);
-  logHistory({ medName: 'Manuale', qty: params.qty || 1, success: true, notes: cmd, ts: Date.now() });
+  const payload = { cmd: cmd, params: params, ts: Date.now(), done: false };
+  try {
+    await fetch(`${fbConfig.databaseURL}/command.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showToast('📡 Comando inviato: ' + cmd);
+  } catch(e) {
+    showToast('❌ Errore invio comando');
+  }
 }
 
 function goToSlot() {
