@@ -755,8 +755,23 @@ async function renderHistory() {
   ).join('');
 }
 
-function clearHistory() {
-  if (!confirm('Svuotare lo storico?')) return;
+async function clearHistory() {
+  if (!confirm('Svuotare lo storico? Questa operazione cancella anche i dati su Firebase.')) return;
+  // Cancella da Firebase
+  if (fbConfig.databaseURL) {
+    try {
+      await fetch(`${fbConfig.databaseURL}/log.json`, {
+        method: 'DELETE'
+      });
+      await fetch(`${fbConfig.databaseURL}/triggered.json`, {
+        method: 'DELETE'
+      });
+      showToast('✅ Storico svuotato da Firebase');
+    } catch(e) {
+      showToast('⚠️ Errore cancellazione Firebase');
+    }
+  }
+  // Cancella anche locale
   history = [];
   saveData();
   renderHistory();
